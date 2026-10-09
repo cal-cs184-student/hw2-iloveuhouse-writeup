@@ -23,6 +23,21 @@
 			body {
 				font-family: 'Inter', sans-serif;
 			}
+
+			tr {
+				break-inside: avoid;
+			}
+
+			@media print {
+				.container {
+					padding: 0 4%;
+				}
+
+				img {
+					max-width: 100%;
+					height: auto;
+				}
+			}
 		</style>
 	</head>
 	<body>
@@ -35,7 +50,7 @@
 		Link to webpage: <a href="https://cal-cs184-student.github.io/hw2-iloveuhouse-writeup">https://cal-cs184-student.github.io/hw2-iloveuhouse-writeup</a>
 
 		<br>
-		
+
 		Link to GitHub repository:  <a href="https://github.com/cal-cs184-student/hw2-iloveuhouse">https://github.com/cal-cs184-student/hw2-iloveuhouse</a>
 
 		<!--
@@ -43,7 +58,7 @@
 		-->
 
 		<h2>Overview</h2>
-		In this assignment, we work on implementing smooth curves and surfaces. There are two parts to this assignment. In Section 1, we design Bezier curves using the de Casteljau algorithms. In Section 2, we implement a half-edge data structure to represent triangle meshes and perform mesh operations such as edge flip, edge split, and Loop subdivision.
+		In this assignment, we work on implementing smooth curves and surfaces. There are two parts to this assignment. In Section 1, we design Bezier curves using the de Casteljau algorithms. In Section 2, we implement a half-edge data structure to represent triangle meshes and perform mesh operations such as edge flip, edge split, and Loop subdivision. The trickiest bug we ran into was in Loop subdivision: edges that we had split by hand kept their <code>isNew</code> flag, so the next subdivision skipped them (more on this in Part 6). We also found that the same cube can subdivide into a lopsided shape or a symmetric one, depending only on how its faces are split into triangles.
 
 		<h2>Section I: Bezier Curves and Surfaces</h2>
 
@@ -60,83 +75,291 @@
 		</p>
 
 		<p> <b> Example of a Bezier Curve</b> <br> Below, we generate an example of six control points. Each image shows the curve at different stages of the de Casteljau subdivision process. We also added an example of a different control point location and a changed t parameter</p>
-		
+
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 			  <tr>
 				<td style="text-align: center;">
+				  <img src="assets/bezier_0.png" width="400px"/>
+				  <figcaption>Step 0 (original control points)</figcaption>
+				</td>
+				<td style="text-align: center;">
 				  <img src="assets/bezier_1.png" width="400px"/>
 				  <figcaption>Step 1</figcaption>
 				</td>
+			  </tr>
+			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_2.png" width="400px"/>
 				  <figcaption>Step 2</figcaption>
 				</td>
-			  </tr>
-			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_3.png" width="400px"/>
 				  <figcaption>Step 3</figcaption>
 				</td>
+			  </tr>
+			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_4.png" width="400px"/>
 				  <figcaption>Step 4</figcaption>
 				</td>
-			  </tr>
-			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_5.png" width="400px"/>
 				  <figcaption>Step 5</figcaption>
 				</td>
+			  </tr>
+			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_line.png" width="400px"/>
 				  <figcaption>Step line</figcaption>
 				</td>
-			  </tr>
-			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_move.png" width="400px"/>
 				  <figcaption>New Control Points</figcaption>
 				</td>
+			  </tr>
+			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/bezier_movet.png" width="400px"/>
 				  <figcaption>Changed parameter t</figcaption>
 				</td>
+				<td></td>
 			  </tr>
-
 			</table>
 		</div>
 
 		<h3>Part 2: Bezier surfaces with separable 1D de Casteljau</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p> <b>Bezier Surfaces</b> <br>
+			For surfaces, we reused the 1D de Casteljau algorithm from Part 1 and applied it in two directions. A Bezier surface has a grid of control points and two parameters \(u\) and \(v\), both in [0, 1]. We treat each row of control points as a Bezier curve and evaluate it at \(u\), which leaves one point per row. Those points form a new Bezier curve, and evaluating it at \(v\) gives the point on the surface at \((u, v)\).
+		</p>
+
+		<p> <b>Implementation</b> <br>
+			<code>evaluateStep</code> is the same as in Part 1, except that it works on 3D points and takes \(t\) as an input. <code>evaluate1D</code> keeps calling <code>evaluateStep</code> until one point is left. <code>evaluate</code> then runs <code>evaluate1D</code> on every row with \(u\), and one last time on the results with \(v\).
+		</p>
+
+		<p> <b>Example of a Bezier Surface</b> <br> Below is <code>bez/teapot.bez</code> evaluated with our implementation.</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task2.png" width="600px"/>
+				  <figcaption>bez/teapot.bez</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h2>Section II: Triangle Meshes and Half-Edge Data Structure</h2>
 
 		<h3>Part 3: Area-weighted vertex normals</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p> <b>Area-Weighted Vertex Normals</b> <br>
+			To get smooth Phong shading, we compute a normal at every vertex by averaging the normals of the faces around it, with each face weighted by its area.
+			We start from the vertex's halfedge and walk around the vertex using <code>h = h->twin()->next()</code> until we come back to the starting halfedge. For each face, we take the two edges that start at the vertex and compute their cross product. The cross product is perpendicular to the face and its length is twice the area of the face, so adding up the cross products already weights each face by its area. At the end, we normalize the sum to get a unit vector. Since <code>normal()</code> is a const function, we use <code>HalfedgeCIter</code> instead of <code>HalfedgeIter</code>.
+		</p>
+
+		<p> <b>Comparison</b> <br> Below, we compare <code>dae/teapot.dae</code> with the default flat shading and with Phong shading using our vertex normals (toggled with Q).</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task3_noshading.png" width="400px"/>
+				  <figcaption>Flat shading</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task3_phong.png" width="400px"/>
+				  <figcaption>Phong shading</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h3>Part 4: Edge flip</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p> <b>Edge Flip</b> <br>
+			An edge flip takes two triangles \((a, b, c)\) and \((c, b, d)\) that share the edge \((b, c)\), and changes them into \((a, d, c)\) and \((a, b, d)\), which share the new edge \((a, d)\). No elements are added or removed. Only the pointers change. We do not flip boundary edges because they only have one triangle. For those edges the function returns right away.
+		</p>
+
+		<p> <b>Implementation</b> <br>
+			First we drew the two triangles before and after the flip and labeled every element. Then we saved each one as a variable. For example <code>h0</code> goes from \(b\) to \(c\) and its twin <code>h1</code> goes from \(c\) to \(b\). After the flip <code>h0</code> goes from \(a\) to \(d\) and <code>h1</code> goes from \(d\) to \(a\). We used <code>setNeighbors</code> to set all the pointers of every halfedge. We also made sure every vertex and edge and face points to the right halfedge.
+		</p>
+
+		<p> <b>Debugging Tricks</b> <br>
+			Instead of only updating the pointers that change, we set every pointer, even if it stays the same. This made it much harder to miss a pointer. To test, we flipped the same edge many times (flipping an edge twice should give back the original edge), and we flipped many edges close to each other to check that no holes appeared.
+		</p>
+
+		<p> <b>Example of Edge Flips</b> <br> Below is the teapot before and after a few edge flips. The thin, dark triangle is a degenerate case, which is expected.</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task4_before.png" width="400px"/>
+				  <figcaption>Before edge flips</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task4_after.png" width="400px"/>
+				  <figcaption>After edge flips</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h3>Part 5: Edge split</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p> <b>Edge Split</b> <br>
+			An edge split adds a new vertex \(m\) at the midpoint of the edge \((b, c)\) and connects it to the two opposite vertices \(a\) and \(d\). This turns two triangles into four. We do not split boundary edges (we did not do the extra credit).
+		</p>
+
+		<p> <b>Implementation</b> <br>
+			Splitting has more pieces to keep track of than flipping: it adds 1 vertex, 3 edges, 6 halfedges, and 2 faces, while the original edge, halfedges, and faces are reused. We place \(m\) at \((b + c) / 2\), set the pointers of all twelve halfedges with <code>setNeighbors</code>, and update the halfedge pointer of every vertex, edge, and face, with the halfedge of \(m\) pointing along the original edge. For Part 6, we also mark \(m\) and the two edges that cross the original triangles, \((m, a)\) and \((m, d)\), as new. To check our work, we counted the elements after each split, and alternated splits and flips on nearby edges, for example flipping an edge right after splitting it.
+		</p>
+
+		<p> <b>Example of Edge Splits</b> <br> Below is the teapot before any edits, after some edge splits, and after a combination of edge splits and edge flips. All images use the same camera angle.</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task5_before.png" width="400px"/>
+				  <figcaption>Before</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task5_split_few.png" width="400px"/>
+				  <figcaption>After a few edge splits</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task5_split.png" width="400px"/>
+				  <figcaption>After more edge splits</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task5_mix_after.png" width="400px"/>
+				  <figcaption>After edge splits and edge flips</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
+
+		<p>Since the changes are small, we also zoomed in on the same area of each image.</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task5_before_zoom.png" width="400px"/>
+				  <figcaption>Before (zoomed in)</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task5_split_few_zoom.png" width="400px"/>
+				  <figcaption>After a few edge splits (zoomed in)</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task5_split_zoom.png" width="400px"/>
+				  <figcaption>After more edge splits (zoomed in)</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task5_mix_after_zoom.png" width="400px"/>
+				  <figcaption>After edge splits and edge flips (zoomed in)</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h3>Part 6: Loop subdivision for mesh upsampling</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p> <b>Loop Subdivision</b> <br>
+			We built Loop subdivision on top of our edge split and edge flip from Parts 4 and 5. Each round splits every triangle into four and moves every vertex to a weighted average of its neighbors. In our <code>upsample</code> function we first go through every vertex of the original mesh and compute its new position \((1 - n \cdot u) \cdot \text{original_position} + u \cdot \text{neighbor_position_sum}\). Here \(n\) is the degree of the vertex and \(u\) is \(3/16\) when \(n = 3\) and \(3/(8n)\) otherwise. We store this in <code>newPosition</code> and mark the vertex as old. Next we go through every edge \((A, B)\) with opposite vertices \(C\) and \(D\) and compute the position of the vertex that will be added on it, which is \(\frac{3}{8}(A + B) + \frac{1}{8}(C + D)\). We store this in the edge's <code>newPosition</code> and mark the edge as old. We do all of this before changing the mesh because the weighted averages have to use the positions of the original mesh.
+		</p>
+		<p>
+			After that we split every edge of the original mesh. We save the original edges in a list first so that we never split one of the new edges. Then we flip every new edge that connects an old vertex to a new vertex. Finally we copy <code>newPosition</code> into <code>position</code> for every old vertex and reset all the <code>isNew</code> flags. The new vertices already got their positions when they were created.
+		</p>
+
+		<p> <b>Debugging</b> <br>
+			While testing, we found that subdivision gave the wrong result if we had split some edges by hand before pressing L. This was because <code>splitEdge</code> marks new vertices and edges with <code>isNew</code>, and those flags were still set when subdivision started. As a result, some edges were never split and some vertices were never moved. We fixed this by marking every vertex and edge as old at the start of <code>upsample</code>.
+		</p>
+
+		<p> <b>Sharp Corners and Edges</b> <br>
+			After Loop subdivision, sharp corners and edges become round, and the mesh gets slightly smaller. This is because every vertex moves toward the average of its neighbors. Below, <code>dae/cube.dae</code> becomes a round shape after a few iterations.
+		</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task6_cube_0.png" width="400px"/>
+				  <figcaption>Original cube</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task6_cube_1.png" width="400px"/>
+				  <figcaption>1 iteration</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task6_cube_2.png" width="400px"/>
+				  <figcaption>2 iterations</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task6_cube_3.png" width="400px"/>
+				  <figcaption>3 iterations</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
+
+		<p>
+			We can reduce this effect by pre-splitting edges near a corner. Adding more vertices close to the corner means the neighbors are closer together, so a smaller area gets smoothed out. Below, we split several edges around the front corner before subdividing. After 3 iterations, the area near this corner keeps sharper creases than the plain cube above. Since we only split edges on one side, the rest of the cube is still rounded.
+		</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task6_corner_before.png" width="400px"/>
+				  <figcaption>Edges split around the front corner</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task6_corner_after.png" width="400px"/>
+				  <figcaption>After 3 iterations</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
+
+		<p> <b>Making the Cube Symmetric</b> <br>
+			After several iterations, the cube above becomes slightly asymmetric, and it looks like an egg. This is because each face of the cube is split into two triangles by one diagonal (the thin grey line on each face), so the corners have different degrees: 3, 4, 4, 4, 5, 5, 5, and 6. Since the subdivision weights depend on the degree, the corners move by different amounts. To fix this, we split the diagonal of every face before subdividing. This adds a vertex in the middle of every face, so every face looks the same (an X shape), every corner has degree 6, and every face center has degree 4. Below, the pre-processed cube stays symmetric after subdivision.
+		</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task6_presplit_0.png" width="400px"/>
+				  <figcaption>Pre-processed cube (X on each face)</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task6_presplit_1.png" width="400px"/>
+				  <figcaption>1 iteration</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/task6_presplit_2.png" width="400px"/>
+				  <figcaption>2 iterations</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/task6_presplit_3.png" width="400px"/>
+				  <figcaption>3 iterations</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h2>(Optional) Section III: Potential Extra Credit - Art Competition: Model something Creative</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		We did not attempt the art competition.
 
-		<h2>Additional Notes (please remove)</h2>
-		<ul>
-			<li>You can also add code if you'd like as so: <code>code code code</code></li>
-			<li>If you'd like to add math equations, 
-				<ul>
-					<li>You can write inline equations like so: \( a^2 + b^2 = c^2 \)</li>
-					<li>You can write display equations like so: \[ a^2 + b^2 = c^2 \]</li>
-				</ul>
-			</li>
-		</ul>
 		</div>
 	</body>
 </html>
