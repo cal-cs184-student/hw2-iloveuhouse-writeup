@@ -153,7 +153,7 @@
 		<h2>Section II: Triangle Meshes and Half-Edge Data Structure</h2>
 
 		<h3>Part 3: Area-weighted vertex normals</h3>
-		<p> <b>Area-Weighted Vertex Normals</b> <br>
+		<p> <b>Vertex Normals</b> <br>
 			To get smooth Phong shading, we compute a normal at every vertex by averaging the normals of the faces around it, with each face weighted by its area.
 			We start from the vertex's halfedge and walk around the vertex using <code>h = h->twin()->next()</code> until we come back to the starting halfedge. For each face, we take the two edges that start at the vertex and compute their cross product. The cross product is perpendicular to the face and its length is twice the area of the face, so adding up the cross products already weights each face by its area. At the end, we normalize the sum to get a unit vector. Since <code>normal()</code> is a const function, we use <code>HalfedgeCIter</code> instead of <code>HalfedgeIter</code>.
 		</p>
@@ -269,8 +269,8 @@
 		</div>
 
 		<h3>Part 6: Loop subdivision for mesh upsampling</h3>
-		<p> <b>Loop Subdivision</b> <br>
-			We built Loop subdivision on top of our edge split and edge flip from Parts 4 and 5. Each round splits every triangle into four and moves every vertex to a weighted average of its neighbors. In our <code>upsample</code> function we first go through every vertex of the original mesh and compute its new position \((1 - n \cdot u) \cdot \text{original_position} + u \cdot \text{neighbor_position_sum}\). Here \(n\) is the degree of the vertex and \(u\) is \(3/16\) when \(n = 3\) and \(3/(8n)\) otherwise. We store this in <code>newPosition</code> and mark the vertex as old. Next we go through every edge \((A, B)\) with opposite vertices \(C\) and \(D\) and compute the position of the vertex that will be added on it, which is \(\frac{3}{8}(A + B) + \frac{1}{8}(C + D)\). We store this in the edge's <code>newPosition</code> and mark the edge as old. We do all of this before changing the mesh because the weighted averages have to use the positions of the original mesh.
+		<p> <b>Subdivision</b> <br>
+			We built loop subdivision on top of our edge split and edge flip from Parts 4 and 5. Each round splits every triangle into four and moves every vertex to a weighted average of its neighbors. In our <code>upsample</code> function we first go through every vertex of the original mesh and compute its new position \((1 - n \cdot u) \cdot \text{original_position} + u \cdot \text{neighbor_position_sum}\). Here \(n\) is the degree of the vertex and \(u\) is \(3/16\) when \(n = 3\) and \(3/(8n)\) otherwise. We store this in <code>newPosition</code> and mark the vertex as old. Next we go through every edge \((A, B)\) with opposite vertices \(C\) and \(D\) and compute the position of the vertex that will be added on it, which is \(\frac{3}{8}(A + B) + \frac{1}{8}(C + D)\). We store this in the edge's <code>newPosition</code> and mark the edge as old. We do all of this before changing the mesh because the weighted averages have to use the positions of the original mesh.
 		</p>
 		<p>
 			After that we split every edge of the original mesh. We save the original edges in a list first so that we never split one of the new edges. Then we flip every new edge that connects an old vertex to a new vertex. Finally we copy <code>newPosition</code> into <code>position</code> for every old vertex and reset all the <code>isNew</code> flags. The new vertices already got their positions when they were created.
@@ -281,7 +281,7 @@
 		</p>
 
 		<p> <b>Sharp Corners and Edges</b> <br>
-			After Loop subdivision, sharp corners and edges become round, and the mesh gets slightly smaller. This is because every vertex moves toward the average of its neighbors. Below, <code>dae/cube.dae</code> becomes a round shape after a few iterations.
+			After loop subdivision, sharp corners and edges become round, and the mesh gets slightly smaller. This is because every vertex moves toward the average of its neighbors. Below, <code>dae/cube.dae</code> becomes a round shape after a few iterations.
 		</p>
 
 		<div style="display: flex; flex-direction: column; align-items: center;">
@@ -310,7 +310,7 @@
 		</div>
 
 		<p>
-			We can reduce this effect by pre-splitting edges near a corner. Adding more vertices close to the corner means the neighbors are closer together, so a smaller area gets smoothed out. Below, we split several edges around the front corner before subdividing. After 3 iterations, the area near this corner keeps sharper creases than the plain cube above. Since we only split edges on one side, the rest of the cube is still rounded.
+			We can reduce this effect by splitting extra edges near a corner first. Adding more vertices close to the corner means the neighbors are closer together, so a smaller area gets smoothed out. Below, we split several edges around the front corner before subdividing. After 3 iterations, the area near this corner keeps sharper creases than the plain cube above. Since we only split edges on one side, the rest of the cube is still rounded.
 		</p>
 
 		<div style="display: flex; flex-direction: column; align-items: center;">
@@ -329,7 +329,7 @@
 		</div>
 
 		<p> <b>Making the Cube Symmetric</b> <br>
-			After several iterations, the cube above becomes slightly asymmetric, and it looks like an egg. This is because each face of the cube is split into two triangles by one diagonal (the thin grey line on each face), so the corners have different degrees: 3, 4, 4, 4, 5, 5, 5, and 6. Since the subdivision weights depend on the degree, the corners move by different amounts. To fix this, we split the diagonal of every face before subdividing. This adds a vertex in the middle of every face, so every face looks the same (an X shape), every corner has degree 6, and every face center has degree 4. Below, the pre-processed cube stays symmetric after subdivision.
+			After several iterations, the cube above becomes slightly asymmetric, and it looks like an egg. This is because each face of the cube is split into two triangles by one diagonal (the thin grey line on each face), so the corners have different degrees: 3, 4, 4, 4, 5, 5, 5, and 6. Since the subdivision weights depend on the degree, the corners move by different amounts. To fix this, we split the diagonal of every face before subdividing. This adds a vertex in the middle of every face, so every face looks the same (an X shape), every corner has degree 6, and every face center has degree 4. Below, the modified cube stays symmetric after subdivision.
 		</p>
 
 		<div style="display: flex; flex-direction: column; align-items: center;">
@@ -337,7 +337,7 @@
 			  <tr>
 				<td style="text-align: center;">
 				  <img src="assets/task6_presplit_0.png" width="400px"/>
-				  <figcaption>Pre-processed cube (X on each face)</figcaption>
+				  <figcaption>Each face split into an X</figcaption>
 				</td>
 				<td style="text-align: center;">
 				  <img src="assets/task6_presplit_1.png" width="400px"/>
